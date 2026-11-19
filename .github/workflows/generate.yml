@@ -1,4 +1,4 @@
-name: Generate Code Per Day SVG
+name: Generate profile card
 
 on:
   schedule:
@@ -15,8 +15,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate Code Per Day chart
-        uses: mpge/code-per-day@v1
+      - name: Generate profile card
+        uses: ./
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           theme: dark
@@ -24,7 +24,6 @@ jobs:
           output_path: ./code-per-day
           all_themes: "true"
           chart_type: bars
-          animations: "true"
 
       - name: Commit and push
         run: |
@@ -35,6 +34,6 @@ jobs:
             echo "No changes to commit"
             exit 0
           fi
-          git commit -m "chore: update code-per-day charts"
+          git commit -m "chore: update profile card"
           git pull --rebase origin main
           git push origin HEAD:main

@@ -1,5 +1,5 @@
 name: 'Code Per Day SVG'
-description: 'Generate beautiful SVG charts showing daily code additions and deletions'
+description: 'Generate one SVG profile card: daily code additions/deletions, a KLOC tech stack leaderboard and top-language donuts'
 author: 'MPGE'
 branding:
   icon: 'bar-chart-2'
@@ -7,12 +7,8 @@ branding:
 
 inputs:
   github_token:
-    description: 'GitHub token. Use a PAT with `repo` scope to include private repositories.'
+    description: 'GitHub token; the card is generated for its owner. Use a PAT with `repo` scope to include private repositories.'
     required: true
-  username:
-    description: 'GitHub username (defaults to the authenticated user)'
-    required: false
-    default: ''
   theme:
     description: 'Chart theme (dark, light, dracula, tokyonight, nord, ocean, sunset, forest, midnight, radical, transparent, github-dark)'
     required: false
@@ -22,7 +18,7 @@ inputs:
     required: false
     default: '30'
   output_path:
-    description: 'Output directory for generated SVG files'
+    description: 'Output directory for the generated profile-card-<theme>.svg'
     required: false
     default: './code-per-day'
   all_themes:
@@ -30,17 +26,9 @@ inputs:
     required: false
     default: 'false'
   chart_type:
-    description: 'Chart style: bars, area'
+    description: 'Style of the code-per-day chart: bars, area'
     required: false
     default: 'bars'
-  image_types:
-    description: 'Comma-separated image families to generate: code, commits, all'
-    required: false
-    default: 'code'
-  animations:
-    description: 'Enable CSS entrance animations in the SVG'
-    required: false
-    default: 'true'
 
 outputs:
   svg_path:

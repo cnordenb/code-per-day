@@ -77,29 +77,41 @@ console.log(`  Chart data points: ${chartData.length}`);
 const examplesDir = path.join(__dirname, "..", "examples");
 fs.mkdirSync(examplesDir, { recursive: true });
 
-// Generate SVGs for all themes, both chart types
+// Sample language data for the leaderboard and the two donuts
+const languages = {
+  kloc: [
+    { name: "JavaScript", color: "#f1e05a", lines: 42310 },
+    { name: "C++", color: "#f34b7d", lines: 31040 },
+    { name: "C", color: "#555555", lines: 12790 },
+    { name: "Python", color: "#3572A5", lines: 6120 },
+    { name: "HTML", color: "#e34c26", lines: 2430 },
+    { name: "CSS", color: "#663399", lines: 1180 },
+    { name: "Shell", color: "#89e051", lines: 240 },
+  ],
+  byRepo: [
+    { name: "JavaScript", color: "#f1e05a", value: 9 },
+    { name: "C", color: "#555555", value: 3 },
+    { name: "HTML", color: "#e34c26", value: 3 },
+    { name: "C++", color: "#f34b7d", value: 3 },
+    { name: "Python", color: "#3572A5", value: 3 },
+  ],
+  byCommit: [
+    { name: "C++", color: "#f34b7d", value: 480 },
+    { name: "JavaScript", color: "#f1e05a", value: 440 },
+    { name: "HTML", color: "#e34c26", value: 22 },
+    { name: "Python", color: "#3572A5", value: 18 },
+  ],
+};
+
+// One card per theme, plus an area-chart variant of the dark theme
 for (const themeName of getAllThemeNames()) {
-  const theme = getTheme(themeName);
-
-  // Bar chart
-  const barSvg = generateSVG(chartData, stats, "mpge", theme, {
-    chartType: "bars",
-    animate: true,
-    periodDays: 30,
-  });
-  const barPath = path.join(examplesDir, `code-per-day-${themeName}.svg`);
-  fs.writeFileSync(barPath, barSvg, "utf8");
-  console.log(`Generated: ${barPath}`);
-
-  // Area chart
-  const areaSvg = generateSVG(chartData, stats, "mpge", theme, {
-    chartType: "area",
-    animate: true,
-    periodDays: 30,
-  });
-  const areaPath = path.join(examplesDir, `code-per-day-${themeName}-area.svg`);
-  fs.writeFileSync(areaPath, areaSvg, "utf8");
-  console.log(`Generated: ${areaPath}`);
+  const svg = generateSVG(chartData, stats, languages, getTheme(themeName), { chartType: "bars" });
+  const file = path.join(examplesDir, `profile-card-${themeName}.svg`);
+  fs.writeFileSync(file, svg, "utf8");
+  console.log(`Generated: ${file}`);
 }
 
-console.log("\nDone! All example SVGs generated in /examples");
+const areaSvg = generateSVG(chartData, stats, languages, getTheme("dark"), { chartType: "area" });
+fs.writeFileSync(path.join(examplesDir, "profile-card-dark-area.svg"), areaSvg, "utf8");
+
+console.log("Done! All example SVGs generated in /examples");

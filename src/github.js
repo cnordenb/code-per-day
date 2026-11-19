@@ -451,4 +451,4 @@ async function fetchAllCommitData(token, username, days) {
   return { login, commits: mergedData, since, now, yearAgo, calendar };
 }
 
-module.exports = { fetchAllCommitData };
+module.exports = { fetchAllCommitData, createClient };

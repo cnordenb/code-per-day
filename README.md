@@ -1,42 +1,28 @@
 # Code Per Day
 
-A GitHub Action that generates beautiful SVG charts showing your daily code additions/deletions and daily commit counts. Embed them in your profile README for a visual breakdown of your coding activity.
+A GitHub Action that generates **one SVG profile card** combining:
 
-Uses the GitHub GraphQL API to fetch commit data across all repositories you've contributed to — including private repos when you provide a PAT with `repo` scope. **Only additions and deletions counts are exposed — no file names, repo names, or code content.**
+- **Code Per Day** — your daily code additions/deletions across all repositories you contributed to
+- **Tech Stack (KLOC)** — a leaderboard of languages ranked by thousands of lines of code in your repositories
+- **Top Languages by Repo / by Commit** — two donut charts
+
+Everything is produced by the same action with the same token.
 
 ## Preview
 
-### Bar Charts
+![dark](examples/profile-card-dark.svg)
 
-| Dark | Light |
-|------|-------|
-| ![dark](examples/code-per-day-dark.svg) | ![light](examples/code-per-day-light.svg) |
+| Light | Tokyo Night |
+|-------|-------------|
+| ![light](examples/profile-card-light.svg) | ![tokyonight](examples/profile-card-tokyonight.svg) |
 
-| Tokyo Night | Dracula |
-|-------------|---------|
-| ![tokyonight](examples/code-per-day-tokyonight.svg) | ![dracula](examples/code-per-day-dracula.svg) |
+| Dracula | Nord |
+|---------|------|
+| ![dracula](examples/profile-card-dracula.svg) | ![nord](examples/profile-card-nord.svg) |
 
-| Nord | Ocean |
-|------|-------|
-| ![nord](examples/code-per-day-nord.svg) | ![ocean](examples/code-per-day-ocean.svg) |
+With `chart_type: area`:
 
-| Sunset | Forest |
-|--------|--------|
-| ![sunset](examples/code-per-day-sunset.svg) | ![forest](examples/code-per-day-forest.svg) |
-
-| Midnight | Radical |
-|----------|---------|
-| ![midnight](examples/code-per-day-midnight.svg) | ![radical](examples/code-per-day-radical.svg) |
-
-| GitHub Dark | Transparent |
-|-------------|-------------|
-| ![github-dark](examples/code-per-day-github-dark.svg) | ![transparent](examples/code-per-day-transparent.svg) |
-
-### Area Charts
-
-| Dark | Tokyo Night |
-|------|-------------|
-| ![dark-area](examples/code-per-day-dark-area.svg) | ![tokyonight-area](examples/code-per-day-tokyonight-area.svg) |
+![dark-area](examples/profile-card-dark-area.svg)
 
 ## Quick Start
 
@@ -48,6 +34,8 @@ Go to [GitHub Settings > Developer settings > Personal access tokens > Fine-grai
 
 > For classic tokens, select the `repo` scope (or `public_repo` for public-only).
 
+The card is always generated for the owner of the token.
+
 ### 2. Add the secret
 
 In your profile repository (`username/username`), go to **Settings > Secrets and variables > Actions** and add a new secret named `CPD_TOKEN` with your PAT.
@@ -57,7 +45,7 @@ In your profile repository (`username/username`), go to **Settings > Secrets and
 Create `.github/workflows/code-per-day.yml` in your profile repo:
 
 ```yaml
-name: Code Per Day
+name: Profile Card
 
 on:
   schedule:
@@ -73,77 +61,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: mpge/code-per-day@v1
+      - uses: cnordenb/code-per-day@main
         with:
           github_token: ${{ secrets.CPD_TOKEN }}
           theme: dark
           period: "30"
           output_path: ./code-per-day
-          image_types: "code,commits"
-          all_themes: "false"
 
       - name: Commit
         run: |
           git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.email redacted@example.invalid
           git add code-per-day/
-          git diff --cached --quiet || (git commit -m "chore: update code-per-day" && git push)
+          git diff --cached --quiet || (git commit -m "chore: update profile card" && git push)
 ```
 
 ### 4. Embed in your README
 
-Add this to your profile `README.md`. The image links back to this repo so visitors can get their own:
-
-```html
-<p align="center">
-  <a href="https://github.com/mpge/code-per-day" target="_blank">
-    <img src="./code-per-day/code-per-day-dark.svg" alt="Code Per Day" />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/mpge/code-per-day" target="_blank">
-    <img src="./code-per-day/commits-per-day-dark.svg" alt="Commits Per Day" />
-  </a>
-</p>
-```
-
-Or in plain Markdown (without the link wrapper):
-
 ```markdown
-![Code Per Day](./code-per-day/code-per-day-dark.svg)
-![Commits Per Day](./code-per-day/commits-per-day-dark.svg)
+![Profile card](./code-per-day/profile-card-dark.svg)
 ```
 
 ### 5. Run it
 
-Trigger the workflow manually to generate your first chart:
-
-1. Go to your profile repo on GitHub
-2. Click **Actions** > **Code Per Day** > **Run workflow**
-3. Wait for it to complete — your SVGs will be committed to the `code-per-day/` directory
-4. Your README will now display the chart
-
-After the first run, the workflow runs automatically every day at 4 AM UTC.
+Trigger the workflow manually (**Actions** > **Profile Card** > **Run workflow**). The first run downloads and counts every code file in your repositories, so it takes a while; later runs only recount repositories that changed.
 
 ## Inputs
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `github_token` | *required* | GitHub PAT. Use `repo` scope for private repos. |
-| `username` | authenticated user | GitHub username to generate charts for |
+| `github_token` | *required* | GitHub PAT of the user the card is for. Use `repo` scope for private repos. |
 | `theme` | `dark` | Theme name (see below) |
-| `period` | `30` | Number of days to chart (30, 90, 365) |
-| `output_path` | `./code-per-day` | Output directory for SVG files |
-| `all_themes` | `false` | Generate an SVG for every built-in theme |
-| `chart_type` | `bars` | Chart style: `bars` or `area` |
-| `image_types` | `code` | Image families to generate: `code`, `commits`, or `all` |
-| `animations` | `true` | Enable CSS entrance animations |
+| `period` | `30` | Number of days in the code-per-day chart (30, 90, 365) |
+| `output_path` | `./code-per-day` | Output directory |
+| `all_themes` | `false` | Generate the card in every built-in theme |
+| `chart_type` | `bars` | Style of the code-per-day chart: `bars` or `area` |
 
-Generated filenames:
-
-- `code-per-day-<theme>.svg` for additions/deletions charts
-- `commits-per-day-<theme>.svg` for commit-count charts
+Generated file: `profile-card-<theme>.svg`
 
 ## Themes
 
@@ -164,37 +118,32 @@ Generated filenames:
 
 Use `all_themes: "true"` to generate all themes at once, then pick the one you like.
 
+## What the card shows
+
+### Code Per Day
+Additions rise above the baseline, deletions fall below (`bars`), or the same as a filled area chart (`area`). Unusually large days are capped and marked with a small triangle so normal days stay visible.
+
+### Tech Stack (KLOC)
+The top 7 languages by lines of code currently on the default branch of every non-fork repository you own (public and private), in thousands of lines.
+
+Counting follows [repo-kloc-counter](https://github.com/cnordenb/repo-kloc-counter): a line of code is a line that is neither blank nor only a comment; only files whose extension belongs to a programming language in GitHub Linguist (plus `.html` and `.css`) are counted. Everything committed is counted, including vendored or generated files.
+
+An extension shared by several languages (such as `.h`) is assigned to whichever of those languages the same repository contains most of.
+
+Each repository's count is stored in the GitHub Actions cache, keyed by its latest commit, so unchanged repositories are not downloaded again. Nothing about individual repositories is committed or published. If the cache is evicted (GitHub drops entries unused for 7 days) the next run recounts everything.
+
+### Top Languages by Repo / by Commit
+Ported from [github-profile-summary-cards](https://github.com/vn7n24fzkq/github-profile-summary-cards). *By Repo* counts your non-fork repositories per primary language. *By Commit* attributes your commit contributions of every year to the primary language of the repository they landed in. Each shows the top 5.
+
 ## Privacy
 
-This action only reads **commit additions and deletions counts** through the GitHub GraphQL API. It does **not** expose:
-- Repository names or URLs
-- File paths or names
-- Code content or diffs
-- Commit messages
-
-The generated SVG contains only aggregated numerical data (total additions/deletions per day) and your username.
-
-## Chart Types
-
-### Bars (default)
-Vertical bars — additions rise above the baseline, deletions fall below.
-
-### Area
-Smooth filled area chart with the same above/below layout.
-
-## Image Types
-
-### Code
-The original additions/deletions chart. Supports both `bars` and `area`.
-
-### Commits
-A separate commit-count chart rendered as its own SVG. This ignores `chart_type` and always renders a single-series commit histogram.
+The generated SVG contains only aggregated numbers: additions/deletions per day and totals per language. It does **not** expose repository names, file names, code, or commit messages.
 
 ## Limitations
 
 Counts come from the GitHub API, which applies its own privacy filters. Expect gaps in these cases:
 
-- **Private contributions are not always exposed.** GitHub's `contributionsCollection` field — the primary source of "which repos did you commit to" — silently drops contributions it classifies as restricted, even when the token has `repo` scope. When running against the token owner (no `username` override), this action backfills by enumerating every repo the token can read directly. When `username` is set to someone else, only repos GitHub exposes on their public profile are visible.
+- **Private contributions are not always exposed.** GitHub's `contributionsCollection` field — the primary source of "which repos did you commit to" — silently drops contributions it classifies as restricted, even when the token has `repo` scope. This action backfills by enumerating every repo the token can read directly.
 - **"Include private contributions on my profile"** must be enabled at https://github.com/settings/profile for private repo activity to surface at all on the authenticated user's own profile.
 - **SAML SSO orgs require token authorization.** For a classic PAT, visit Settings → Personal access tokens → *your token* → **Configure SSO** and authorize every org whose private repos you want counted. Without this, contributions to those orgs land in `restrictedContributionsCount` and never reach this action.
 - **Fine-grained PATs** are only partially supported. They work for public repos and personal private repos, but most orgs have not enabled fine-grained PAT access, and commit history in those org repos will be invisible. Use a classic PAT with `repo` scope for full coverage.
