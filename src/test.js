@@ -3,7 +3,7 @@ const { processData } = require("./aggregator");
 const { getOutputFileName } = require("./index");
 const { countLines, countRepository, extensionOf } = require("./kloc/count");
 const { linesByLanguage } = require("./kloc/languages");
-const { reposPerLanguage } = require("./languages");
+const { reposPerLanguage, repoExcluder } = require("./languages");
 const { generateSVG } = require("./svg/generator");
 const { formatKloc, LEADERBOARD_ROWS } = require("./svg/leaderboard");
 const { getTheme, getAllThemeNames } = require("./svg/themes");
@@ -80,6 +80,15 @@ function testReposPerLanguage() {
   assert.deepStrictEqual(top.map((l) => [l.name, l.value]), [["JavaScript", 2], ["C", 1]]);
 }
 
+function testRepoExcluder() {
+  const isExcluded = repoExcluder(" Junction2026_Sargas , someone/Other ");
+  assert.ok(isExcluded("cnordenb/junction2026_sargas"));
+  assert.ok(isExcluded("AnyOrg/Junction2026_Sargas"));
+  assert.ok(isExcluded("someone/other"));
+  assert.ok(!isExcluded("else/other2"));
+  assert.ok(!repoExcluder("")("a/b"));
+}
+
 function testCardRenders({ chartData, stats }) {
   assert.strictEqual(formatKloc(42345), "42.3");
   const kloc = Array.from({ length: 12 }, (_, i) => ({ name: `Lang${i}`, color: "#abcdef", lines: 50000 - i * 4000 }));
@@ -104,6 +113,7 @@ async function run() {
   await testCountRepositorySplitsByExtension();
   testAmbiguousExtensionsFollowTheRepo();
   testReposPerLanguage();
+  testRepoExcluder();
   testCardRenders(sample);
   console.log("All tests passed");
 }

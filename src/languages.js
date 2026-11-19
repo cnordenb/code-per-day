@@ -14,7 +14,7 @@ const YEAR_CHUNK_SIZE = 5;
  * Every non-fork repository owned by `login`, with its primary language and
  * the head commit of its default branch (used by the KLOC counter).
  */
-async function getOwnedRepos(gql, login) {
+async function getOwnedRepos(gql, login, isExcluded = () => false) {
   const repos = [];
   let cursor = null;
   let hasNext = true;
@@ -41,6 +41,7 @@ async function getOwnedRepos(gql, login) {
 
     const page = user.repositories;
     for (const node of page.nodes) {
+      if (isExcluded(node.nameWithOwner)) continue;
       repos.push({
         owner: node.owner.login,
         name: node.name,
@@ -81,7 +82,7 @@ async function commitContributionsWindow(gql, login, from, to) {
       user(login: $login) {
         contributionsCollection(from: $from, to: $to) {
           commitContributionsByRepository(maxRepositories: 100) {
-            repository { primaryLanguage { name color } }
+            repository { nameWithOwner primaryLanguage { name color } }
             contributions { totalCount }
           }
         }
@@ -107,7 +108,7 @@ async function commitContributionsForYear(gql, login, year) {
   }
 }
 
-async function commitsPerLanguage(gql, login) {
+async function commitsPerLanguage(gql, login, isExcluded = () => false) {
   const { user } = await gql(
     `query($login: String!) {
       user(login: $login) { contributionsCollection { contributionYears } }
@@ -121,7 +122,7 @@ async function commitsPerLanguage(gql, login) {
     const chunk = years.slice(i, i + YEAR_CHUNK_SIZE);
     const perYear = await Promise.all(chunk.map((year) => commitContributionsForYear(gql, login, year)));
     for (const node of perYear.flat()) {
-      if (node.repository.primaryLanguage) {
+      if (node.repository.primaryLanguage && !isExcluded(node.repository.nameWithOwner)) {
         tally(map, node.repository.primaryLanguage, node.contributions.totalCount);
       }
     }
@@ -129,4 +130,21 @@ async function commitsPerLanguage(gql, login) {
   return topLanguages(map);
 }
 
-module.exports = { getOwnedRepos, reposPerLanguage, commitsPerLanguage };
+/**
+ * Build a matcher from a comma-separated list of repositories. Entries match
+ * case-insensitively, either by bare name ("repo") or by "owner/repo".
+ */
+function repoExcluder(list) {
+  const entries = new Set(
+    String(list || "")
+      .split(",")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  return (nameWithOwner) => {
+    const full = String(nameWithOwner || "").toLowerCase();
+    return entries.has(full) || entries.has(full.slice(full.indexOf("/") + 1));
+  };
+}
+
+module.exports = { repoExcluder, getOwnedRepos, reposPerLanguage, commitsPerLanguage };

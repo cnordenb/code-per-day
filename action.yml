@@ -29,6 +29,10 @@ inputs:
     description: 'Style of the code-per-day chart: bars, area'
     required: false
     default: 'bars'
+  exclude_repos:
+    description: 'Comma-separated repositories to leave out of every part of the card. Use the repository name, or owner/name.'
+    required: false
+    default: ''
 
 outputs:
   svg_path:

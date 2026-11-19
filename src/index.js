@@ -7,7 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const { fetchAllCommitData, createClient } = require("./github");
 const { processData } = require("./aggregator");
-const { getOwnedRepos, reposPerLanguage, commitsPerLanguage } = require("./languages");
+const { repoExcluder, getOwnedRepos, reposPerLanguage, commitsPerLanguage } = require("./languages");
 const { fetchKlocByLanguage } = require("./kloc");
 const { generateSVG } = require("./svg/generator");
 const { getTheme, getAllThemeNames } = require("./svg/themes");
@@ -25,12 +25,14 @@ async function run() {
     const outputPath = core.getInput("output_path") || "./code-per-day";
     const allThemes = core.getInput("all_themes") === "true";
     const chartType = core.getInput("chart_type") || "bars";
+    const isExcluded = repoExcluder(core.getInput("exclude_repos"));
 
     // Code per day
     const { login, commits, since, now, yearAgo, calendar } = await fetchAllCommitData(
       token,
       undefined,
-      period
+      period,
+      isExcluded
     );
     const { chartData, stats } = processData(commits, since, now, yearAgo, calendar);
     console.log(
@@ -39,11 +41,11 @@ async function run() {
 
     // Languages: donuts and KLOC leaderboard, same token
     const gql = createClient(token);
-    const ownedRepos = await getOwnedRepos(gql, login);
+    const ownedRepos = await getOwnedRepos(gql, login, isExcluded);
     console.log(`\nOwned non-fork repos: ${ownedRepos.length}`);
 
     const byRepo = reposPerLanguage(ownedRepos);
-    const byCommit = await commitsPerLanguage(gql, login);
+    const byCommit = await commitsPerLanguage(gql, login, isExcluded);
     console.log(`Top languages by repo:   ${byRepo.map((l) => `${l.name} ${l.value}`).join(", ")}`);
     console.log(`Top languages by commit: ${byCommit.map((l) => `${l.name} ${l.value}`).join(", ")}`);
 

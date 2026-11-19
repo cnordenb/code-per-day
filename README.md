@@ -96,6 +96,7 @@ Trigger the workflow manually (**Actions** > **Profile Card** > **Run workflow**
 | `output_path` | `./code-per-day` | Output directory |
 | `all_themes` | `false` | Generate the card in every built-in theme |
 | `chart_type` | `bars` | Style of the code-per-day chart: `bars` or `area` |
+| `exclude_repos` | *none* | Comma-separated repositories to leave out of every part of the card (chart, leaderboard, both donuts). Use the repository name or `owner/name`; case does not matter. |
 
 Generated file: `profile-card-<theme>.svg`
 

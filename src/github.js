@@ -380,7 +380,7 @@ function mergeCommitAndPRStats(commits, prStats) {
  * Main entry: fetch all commit data for the user across contributed repos.
  * Returns raw array of { additions, deletions, date } objects.
  */
-async function fetchAllCommitData(token, username, days) {
+async function fetchAllCommitData(token, username, days, isExcluded = () => false) {
   const gql = createClient(token);
 
   // Resolve user
@@ -428,6 +428,10 @@ async function fetchAllCommitData(token, username, days) {
     console.log(`Merged repo list: ${repos.length} unique repos`);
   }
 
+  const before = repos.length;
+  repos = repos.filter((repo) => !isExcluded(repo.nameWithOwner));
+  if (repos.length !== before) console.log(`Excluded ${before - repos.length} repos`);
+
   // Fetch commit stats from each repo (client-side author filtering)
   const allCommits = [];
   for (const repo of repos) {
@@ -441,7 +445,9 @@ async function fetchAllCommitData(token, username, days) {
 
   // Fetch merged PR stats to capture squash-merged contributions
   console.log(`Fetching merged PRs for @${login}...`);
-  const prStats = await getPullRequestStats(gql, login, fetchSince);
+  const prStats = (await getPullRequestStats(gql, login, fetchSince)).filter(
+    (pr) => !pr.repo || !isExcluded(pr.repo)
+  );
   console.log(`Total merged PRs fetched: ${prStats.length}`);
 
   // Merge commit and PR data, deduplicating by date

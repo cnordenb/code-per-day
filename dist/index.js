@@ -42504,7 +42504,7 @@ function mergeCommitAndPRStats(commits, prStats) {
  * Main entry: fetch all commit data for the user across contributed repos.
  * Returns raw array of { additions, deletions, date } objects.
  */
-async function fetchAllCommitData(token, username, days) {
+async function fetchAllCommitData(token, username, days, isExcluded = () => false) {
   const gql = createClient(token);
 
   // Resolve user
@@ -42552,6 +42552,10 @@ async function fetchAllCommitData(token, username, days) {
     console.log(`Merged repo list: ${repos.length} unique repos`);
   }
 
+  const before = repos.length;
+  repos = repos.filter((repo) => !isExcluded(repo.nameWithOwner));
+  if (repos.length !== before) console.log(`Excluded ${before - repos.length} repos`);
+
   // Fetch commit stats from each repo (client-side author filtering)
   const allCommits = [];
   for (const repo of repos) {
@@ -42565,7 +42569,9 @@ async function fetchAllCommitData(token, username, days) {
 
   // Fetch merged PR stats to capture squash-merged contributions
   console.log(`Fetching merged PRs for @${login}...`);
-  const prStats = await getPullRequestStats(gql, login, fetchSince);
+  const prStats = (await getPullRequestStats(gql, login, fetchSince)).filter(
+    (pr) => !pr.repo || !isExcluded(pr.repo)
+  );
   console.log(`Total merged PRs fetched: ${prStats.length}`);
 
   // Merge commit and PR data, deduplicating by date
@@ -42592,7 +42598,7 @@ const fs = __nccwpck_require__(79896);
 const path = __nccwpck_require__(16928);
 const { fetchAllCommitData, createClient } = __nccwpck_require__(86474);
 const { processData } = __nccwpck_require__(81672);
-const { getOwnedRepos, reposPerLanguage, commitsPerLanguage } = __nccwpck_require__(20906);
+const { repoExcluder, getOwnedRepos, reposPerLanguage, commitsPerLanguage } = __nccwpck_require__(20906);
 const { fetchKlocByLanguage } = __nccwpck_require__(65899);
 const { generateSVG } = __nccwpck_require__(21989);
 const { getTheme, getAllThemeNames } = __nccwpck_require__(17840);
@@ -42610,12 +42616,14 @@ async function run() {
     const outputPath = core.getInput("output_path") || "./code-per-day";
     const allThemes = core.getInput("all_themes") === "true";
     const chartType = core.getInput("chart_type") || "bars";
+    const isExcluded = repoExcluder(core.getInput("exclude_repos"));
 
     // Code per day
     const { login, commits, since, now, yearAgo, calendar } = await fetchAllCommitData(
       token,
       undefined,
-      period
+      period,
+      isExcluded
     );
     const { chartData, stats } = processData(commits, since, now, yearAgo, calendar);
     console.log(
@@ -42624,11 +42632,11 @@ async function run() {
 
     // Languages: donuts and KLOC leaderboard, same token
     const gql = createClient(token);
-    const ownedRepos = await getOwnedRepos(gql, login);
+    const ownedRepos = await getOwnedRepos(gql, login, isExcluded);
     console.log(`\nOwned non-fork repos: ${ownedRepos.length}`);
 
     const byRepo = reposPerLanguage(ownedRepos);
-    const byCommit = await commitsPerLanguage(gql, login);
+    const byCommit = await commitsPerLanguage(gql, login, isExcluded);
     console.log(`Top languages by repo:   ${byRepo.map((l) => `${l.name} ${l.value}`).join(", ")}`);
     console.log(`Top languages by commit: ${byCommit.map((l) => `${l.name} ${l.value}`).join(", ")}`);
 
@@ -42987,7 +42995,7 @@ const YEAR_CHUNK_SIZE = 5;
  * Every non-fork repository owned by `login`, with its primary language and
  * the head commit of its default branch (used by the KLOC counter).
  */
-async function getOwnedRepos(gql, login) {
+async function getOwnedRepos(gql, login, isExcluded = () => false) {
   const repos = [];
   let cursor = null;
   let hasNext = true;
@@ -43014,6 +43022,7 @@ async function getOwnedRepos(gql, login) {
 
     const page = user.repositories;
     for (const node of page.nodes) {
+      if (isExcluded(node.nameWithOwner)) continue;
       repos.push({
         owner: node.owner.login,
         name: node.name,
@@ -43054,7 +43063,7 @@ async function commitContributionsWindow(gql, login, from, to) {
       user(login: $login) {
         contributionsCollection(from: $from, to: $to) {
           commitContributionsByRepository(maxRepositories: 100) {
-            repository { primaryLanguage { name color } }
+            repository { nameWithOwner primaryLanguage { name color } }
             contributions { totalCount }
           }
         }
@@ -43080,7 +43089,7 @@ async function commitContributionsForYear(gql, login, year) {
   }
 }
 
-async function commitsPerLanguage(gql, login) {
+async function commitsPerLanguage(gql, login, isExcluded = () => false) {
   const { user } = await gql(
     `query($login: String!) {
       user(login: $login) { contributionsCollection { contributionYears } }
@@ -43094,7 +43103,7 @@ async function commitsPerLanguage(gql, login) {
     const chunk = years.slice(i, i + YEAR_CHUNK_SIZE);
     const perYear = await Promise.all(chunk.map((year) => commitContributionsForYear(gql, login, year)));
     for (const node of perYear.flat()) {
-      if (node.repository.primaryLanguage) {
+      if (node.repository.primaryLanguage && !isExcluded(node.repository.nameWithOwner)) {
         tally(map, node.repository.primaryLanguage, node.contributions.totalCount);
       }
     }
@@ -43102,7 +43111,24 @@ async function commitsPerLanguage(gql, login) {
   return topLanguages(map);
 }
 
-module.exports = { getOwnedRepos, reposPerLanguage, commitsPerLanguage };
+/**
+ * Build a matcher from a comma-separated list of repositories. Entries match
+ * case-insensitively, either by bare name ("repo") or by "owner/repo".
+ */
+function repoExcluder(list) {
+  const entries = new Set(
+    String(list || "")
+      .split(",")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  return (nameWithOwner) => {
+    const full = String(nameWithOwner || "").toLowerCase();
+    return entries.has(full) || entries.has(full.slice(full.indexOf("/") + 1));
+  };
+}
+
+module.exports = { repoExcluder, getOwnedRepos, reposPerLanguage, commitsPerLanguage };
 
 
 /***/ }),
