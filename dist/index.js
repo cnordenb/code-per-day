@@ -43333,10 +43333,12 @@ module.exports = { renderBarChart, renderAreaChart, formatNum, formatDateLabel }
 const { PANEL_FONT, escapeXml, truncate } = __nccwpck_require__(64921);
 
 const TITLE_SIZE = 22;
-const LABEL_SIZE = 14;
-const LABEL_STEP = LABEL_SIZE * 1.8;
-const OUTER_RADIUS = 60;
-const INNER_RADIUS = 35;
+// Sized so five legend rows and the donut are no taller than the five
+// leaderboard rows next to them.
+const LABEL_SIZE = 11;
+const LABEL_STEP = 20;
+const OUTER_RADIUS = 48;
+const INNER_RADIUS = 28;
 const EMPTY_COLOR = "#586e75";
 
 function point(cx, cy, radius, angle) {
@@ -43372,9 +43374,9 @@ function renderDonutPanel(title, data, theme, opts) {
     data.length > 0 ? data : emptyLines.map((name) => ({ name, value: 1, color: EMPTY_COLOR }));
   const separator = theme.bg === "transparent" ? "none" : theme.bg;
 
-  const cx = x + width - OUTER_RADIUS - 2;
-  const legendTop = y + 43;
-  const cy = legendTop + OUTER_RADIUS;
+  const cx = x + width - OUTER_RADIUS - 34;
+  const legendTop = y + 41;
+  const cy = legendTop + 2 * LABEL_STEP + LABEL_SIZE / 2;
   // Room for a label before it would run into the donut.
   const maxChars = Math.floor((cx - OUTER_RADIUS - 8 - (x + 10 + LABEL_SIZE * 1.2)) / (LABEL_SIZE * 0.52));
 
@@ -43383,7 +43385,7 @@ function renderDonutPanel(title, data, theme, opts) {
   items.forEach((item, i) => {
     const top = legendTop + i * LABEL_STEP;
     svg += `<rect x="${x + 10}" y="${top.toFixed(1)}" width="${LABEL_SIZE}" height="${LABEL_SIZE}" fill="${item.color}" stroke="${separator}" stroke-width="1"/>`;
-    svg += `<text x="${(x + 10 + LABEL_SIZE * 1.2).toFixed(1)}" y="${(top + 12).toFixed(1)}" fill="${theme.text}" font-size="${LABEL_SIZE}" font-family="${PANEL_FONT}">${escapeXml(truncate(item.name, maxChars))}</text>`;
+    svg += `<text x="${(x + 10 + LABEL_SIZE * 1.2).toFixed(1)}" y="${(top + LABEL_SIZE - 1.5).toFixed(1)}" fill="${theme.text}" font-size="${LABEL_SIZE}" font-family="${PANEL_FONT}">${escapeXml(truncate(item.name, maxChars))}</text>`;
   });
 
   const total = items.reduce((sum, item) => sum + item.value, 0);
@@ -43417,15 +43419,15 @@ const { renderLeaderboard, LEADERBOARD_ROWS } = __nccwpck_require__(74387);
 const { escapeXml } = __nccwpck_require__(64921);
 
 const WIDTH = 840;
-const HEIGHT = 516;
+const HEIGHT = 446;
 const PADDING = 24;
 
 // Top: the code-per-day chart.
-const CHART_TOP = 78;
-const CHART_HEIGHT = 176;
+const CHART_TOP = 72;
+const CHART_HEIGHT = 160;
 
 // Bottom row: leaderboard + two donuts, all inside the one card border.
-const ROW_TOP = 328;
+const ROW_TOP = 285;
 const BOARD = { x: PADDING, width: 220 };
 const DONUT_WIDTH = 272;
 const DONUT_REPO_X = 260;
@@ -43532,8 +43534,7 @@ const TITLE_SIZE = 22;
 const ROW_SIZE = 14;
 const ROW_STEP = 19;
 const SWATCH = 12;
-// As many rows as fit between the title and the bottom of the card.
-const LEADERBOARD_ROWS = 7;
+const LEADERBOARD_ROWS = 5;
 
 function formatKloc(lines) {
   return (lines / 1000).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });

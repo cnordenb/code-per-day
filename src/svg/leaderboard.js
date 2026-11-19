@@ -7,8 +7,7 @@ const TITLE_SIZE = 22;
 const ROW_SIZE = 14;
 const ROW_STEP = 19;
 const SWATCH = 12;
-// As many rows as fit between the title and the bottom of the card.
-const LEADERBOARD_ROWS = 7;
+const LEADERBOARD_ROWS = 5;
 
 function formatKloc(lines) {
   return (lines / 1000).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });

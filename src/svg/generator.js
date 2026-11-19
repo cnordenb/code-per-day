@@ -8,15 +8,15 @@ const { renderLeaderboard, LEADERBOARD_ROWS } = require("./leaderboard");
 const { escapeXml } = require("./text");
 
 const WIDTH = 840;
-const HEIGHT = 516;
+const HEIGHT = 446;
 const PADDING = 24;
 
 // Top: the code-per-day chart.
-const CHART_TOP = 78;
-const CHART_HEIGHT = 176;
+const CHART_TOP = 72;
+const CHART_HEIGHT = 160;
 
 // Bottom row: leaderboard + two donuts, all inside the one card border.
-const ROW_TOP = 328;
+const ROW_TOP = 285;
 const BOARD = { x: PADDING, width: 220 };
 const DONUT_WIDTH = 272;
 const DONUT_REPO_X = 260;

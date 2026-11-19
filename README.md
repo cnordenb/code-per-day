@@ -124,7 +124,7 @@ Use `all_themes: "true"` to generate all themes at once, then pick the one you l
 Additions rise above the baseline, deletions fall below (`bars`), or the same as a filled area chart (`area`). Unusually large days are capped and marked with a small triangle so normal days stay visible.
 
 ### Tech Stack (KLOC)
-The top 7 languages by lines of code currently on the default branch of every non-fork repository you own (public and private), in thousands of lines.
+The top 5 languages by lines of code currently on the default branch of every non-fork repository you own (public and private), in thousands of lines.
 
 Counting follows [repo-kloc-counter](https://github.com/cnordenb/repo-kloc-counter): a line of code is a line that is neither blank nor only a comment; only files whose extension belongs to a programming language in GitHub Linguist (plus `.html` and `.css`) are counted. Everything committed is counted, including vendored or generated files.
 
